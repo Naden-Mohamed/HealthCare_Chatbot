@@ -10,8 +10,8 @@ llm = ChatGroq(
 
 # Define messages
 messages = [
-    SystemMessage(content="You are a friendly chatbot that helps answer questions."),
-    HumanMessage(content="Hello! Can you translate 'I love u' into French?")
+    SystemMessage(content="YYou are a healthcare assistant. Provide medically accurate, patient-friendly answers based on WHO & Mayo Clinic guidelines. Always include a disclaimer."),
+    HumanMessage(content="Hello! what is the anemia symptoms?")
 ]
 
 # Get response
