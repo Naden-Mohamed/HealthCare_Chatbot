@@ -1,10 +1,14 @@
 import bs4
+import requests
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
+from langchain_groq import ChatGroq
+from langchain_core.messages import HumanMessage, SystemMessage
+import faiss
+import numpy as np
 import os
 import asyncio
 import wikipedia
@@ -97,8 +101,52 @@ def embedd_chuncks(chuncks):
 
 
 # STEP 4: Create a retriever from the embeddings (Store using FAISS)
+def semantic_search(query, chuncks, embeddings, credability_score, top_k = 5):
+    query_embed = embedding_model = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            input = query).data[0].embedding
+    
+    # L2 distance (Euclidean distance) as the similarity metric.
+    index = faiss.IndexFlatL2(len(query_embed)) # Dimension of the embeddings
+    index.add(np.array(embeddings).astype('float32'))
+    # This index will store all the document chunks as vectors 
+    # so that we can quickly compute distances to the query vector.
+    # FAISS requires a NumPy array of type float32
 
-db = FAISS.from_documents(split_docs, embedding_model)
+    D, I = index.search(np.array([query_embed]).astype('float32'), len(embeddings))
+    # D - distances of each chunk from the query (shape [1, num_chunks]), I - indices of nearest neighbors
+
+    # Final score = similarity * credibility
+    results = []
+    for idx in enumerate(I[0]):
+        similarity = 1 / (1 + D[0][idx[0]])  # Convert distance to similarity
+        # We want a similarity score between 0 and 1 (higher = better),
+        # so 1 / (1 + distance) is a simple conversion.
+        final_score = similarity * credability_score[idx[1]]
+        results.append((chuncks[idx[1]], final_score))
+    results.sort(key=lambda x: x[1], reverse=True)
+    return [chunck for chunck, final_score in results[:top_k]]
+
+
+def LLM_Answer_Generation(query, top_chunks):
+    context = "\n\n".join(top_chunks)
+    prompt = f"Answer the following question using only the provided context:\n\n{context}\n\nQuestion: {query}\nAnswer:"
+
+    response = client.chat.completions.create(
+    model="llama3-8b-8192",  # Free LLaMA 3 model
+    temperature=1.0,  # Adjust temperature for creativity
+    max_tokens=100,  # Limit response length
+    messages=[{"role": "user", "content": prompt}]
+    )
+    
+    return response.choices[0].message.content
+
+
+
+
+
+
+
 # Vector stores are usually run as a separate service that requires some IO operations, 
 # and therefore they might be called asynchronously. 
 # That gives performance benefits as you don't waste time waiting for responses from external services. 
@@ -111,6 +159,13 @@ async def retrieve_documents():
     docs = await loop.run_in_executor(None, lambda: db.similarity_search(query, k=3))
     print(f"Retrieved {len(docs)} relevant chunks for query '{query}'")
     print(f"First chunk:\n{docs[0].page_content[:500].strip()}\n")
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     asyncio.run(retrieve_documents())
