@@ -1,19 +1,18 @@
-import bs4
 import requests
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_groq import ChatGroq
-from langchain_core.messages import HumanMessage, SystemMessage
-
-
+import bs4
+import wikipedia
 import faiss
 import numpy as np
 import os
-import asyncio
-import wikipedia
+from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_groq import ChatGroq
+from memory import call_model
+from langgraph.graph import MessagesState
+
+
 os.environ["USER_AGENT"] = "my-healthcare-chatbot/1.0"
 # Initialize Groq LLM
 llm = ChatGroq(
@@ -23,6 +22,11 @@ llm = ChatGroq(
 )
 # Initialize HuggingFace Embedding Model
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+
+# Initialize memory state
+state = MessagesState(messages=[])
+
 
 ## Wikipedia API Wrapper
 def fetch_wikipedia_pages(query, top_n=3):
@@ -136,18 +140,18 @@ def semantic_search(query, chuncks, embeddings, credability_score, top_k = 5):
     return [chunck for chunck, final_score in results[:top_k]]
 
 
-def LLM_Answer_Generation(query, top_chunks):
-    context = "\n\n".join(top_chunks)
-    prompt = f"Answer the following question using only the provided context:\n\n{context}\n\nQuestion: {query}\nAnswer:"
+# def LLM_Answer_Generation(query, top_chunks):
+#     context = "\n\n".join(top_chunks)
+#     prompt = f"Answer the following question using only the provided context:\n\n{context}\n\nQuestion: {query}\nAnswer:"
 
-    # ChatGroq expects a list of messages
-    messages = [
-        SystemMessage(content="You are a helpful medical assistant."),
-        HumanMessage(content=prompt)
-    ]
+#     # ChatGroq expects a list of messages
+#     messages = [
+#         SystemMessage(content="You are a helpful medical assistant."),
+#         HumanMessage(content=prompt)
+#     ]
 
-    response = llm(messages)  # Direct call
-    return response.content  # Extract text
+#     response = llm(messages)  # Direct call
+#     return response.content  # Extract text
 
 def medical_query_rag(query, top_k = 5, top_n_chuncks = 5):
        # Check cache
@@ -172,7 +176,11 @@ def medical_query_rag(query, top_k = 5, top_n_chuncks = 5):
 
     top_chunks = semantic_search(query, all_chunks, embeddings, credibility_scores, top_k= top_n_chuncks)
 
-    answer = LLM_Answer_Generation(query, top_chunks)
+        # Call your model with top chunks
+    answer_obj = call_model(state, query, top_chunks=top_chunks, llm = llm)
+
+    # Extract the assistant's latest response
+    answer = answer_obj["messages"][-1].content
 
     # 5. Cache answer
     #cache_query(query, answer)
@@ -194,10 +202,6 @@ async def retrieve_documents():
     docs = await loop.run_in_executor(None, lambda: db.similarity_search(query, k=3))
     print(f"Retrieved {len(docs)} relevant chunks for query '{query}'")
     print(f"First chunk:\n{docs[0].page_content[:500].strip()}\n")
-
-
-
-
 
 
 
