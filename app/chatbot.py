@@ -1,20 +1,35 @@
-from langchain_groq import ChatGroq
-from langchain_core.messages import HumanMessage, SystemMessage
+import streamlit as st
+from retriever import medical_query_rag  # remove .py
 
-# Initialize Groq LLM
-llm = ChatGroq(
-    model="llama3-8b-8192",  # Free LLaMA 3 model
-    temperature=1.0,  # Adjust temperature for creativity
-    max_tokens=100,  # Limit response length
-)
+st.set_page_config(page_title="Healthcare Chatbot", layout="wide")
+st.title("Healthcare Chatbot 🤖🩺")
 
-# Define messages
-messages = [
-    SystemMessage(content="YYou are a healthcare assistant. Provide medically accurate, patient-friendly answers based on WHO & Mayo Clinic guidelines. Always include a disclaimer."),
-    HumanMessage(content="Hello! what is the anemia symptoms?")
-]
+st.write("This chatbot provides information on healthcare topics using trusted sources like Wikipedia and medical websites.")
 
-# Get response
-response = llm.invoke(messages)
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-print("Chatbot:", response.content)
+# Display previous messages
+for message in st.session_state.messages:
+    role = message["role"]
+    content = message["content"]
+    with st.chat_message(role):
+        st.markdown(content)
+
+# User input
+user_query = st.chat_input("Ask me anything about healthcare!")
+if user_query:
+
+    st.session_state.messages.append({"role": "user", "content": user_query})
+    with st.chat_message("user"):
+        st.markdown(user_query)
+
+    # Fetch AI response
+    with st.spinner("Fetching answer..."):
+        response = medical_query_rag(user_query, top_k=500, top_n_chuncks=500)
+
+    # Append bot response to chat history
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    with st.chat_message("assistant"):
+        st.markdown(response)
