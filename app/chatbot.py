@@ -8,6 +8,16 @@ st.title("Healthcare Chatbot 🤖🩺")
 st.write("Ask any healthcare question. Responses are generated using trusted sources.")
 
 
+
+
+def file_upload():
+    uploaded_file = st.file_uploader("Upload a document", type=["pdf", "txt", "docx", "pptx"])
+    if uploaded_file:
+        st.write("Filename: ", uploaded_file.name)
+
+    return uploaded_file
+
+
 if "state" not in st.session_state:
     st.session_state.state = MessagesState(messages=[])
 if "messages" not in st.session_state:
@@ -18,7 +28,14 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-user_query = st.chat_input("Ask me anything about healthcare!")
+# Sidebar for file upload to answer questions based on file content
+with st.sidebar:
+    st.button("📂 Upload your file", on_click=lambda: file_upload())
+    st.button("Clear Conversation", on_click=lambda: st.session_state.clear())
+
+
+user_query = st.chat_input("Ask me anything about healthcare!") 
+
 if user_query:
 
     st.session_state.messages.append({"role": "user", "content": user_query})
