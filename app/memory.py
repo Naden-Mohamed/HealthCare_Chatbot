@@ -4,7 +4,7 @@ from langgraph.graph import START, MessagesState, StateGraph
 
 workflow = StateGraph(state_schema=MessagesState)
 
-
+#Converts any input messages into a consistent format (HumanMessage) for the Groq LLM.
 def normalize_messages(messages):
     normalized = []
     for m in messages:
@@ -19,7 +19,7 @@ def call_model(state: MessagesState, query: str, top_chunks: list, llm=None):
     if llm is None:
         raise ValueError("LLM instance must be provided")
 
-    system_message = SystemMessage(content="You are a helpful medical assistant.")
+    system_message = SystemMessage(content="You are a helpful medical assistant. Provide accurate and concise information based on the provided context.")
     user_message = HumanMessage(content=query)
     context_message = HumanMessage(content="\n\n".join(top_chunks))
     message_history = normalize_messages(state["messages"])
@@ -37,15 +37,15 @@ def call_model(state: MessagesState, query: str, top_chunks: list, llm=None):
     response = llm(message_updates)
     response_message = HumanMessage(content=getattr(response, "content", str(response)))
 
-    # Update state with new messages
     state["messages"].extend(message_updates + [response_message])
     return response_message.content
 
 
-
-
+# Adds the call_model function as a node in the workflow.
+# Connects it to the START node so it runs when the workflow starts.
 workflow.add_node("model", call_model)
 workflow.add_edge(START, "model")
+
 
 memory = MemorySaver()
 app = workflow.compile(checkpointer=memory)

@@ -28,10 +28,8 @@ embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-Mi
 
 # Initialize memory state
 state = MessagesState(messages=[])
-memory_saver = MemorySaver()  # optional if you want to persist
 
 
-## Wikipedia API Wrapper
 def fetch_wikipedia_pages(query, top_n=3):
     search_results = wikipedia.search(query, results=top_n)
     pages_content = []
@@ -56,8 +54,6 @@ def fetch_wikipedia_pages(query, top_n=3):
 
 
 
-# Example usage of WebBaseLoader to load trusted medical webpages
-
 def fetch_trusted_medical_webpages(query, top_n=3):
     trusted_query = f"{query} "
     search = DuckDuckGoSearchRun()
@@ -67,17 +63,15 @@ def fetch_trusted_medical_webpages(query, top_n=3):
     
     for snippet in raw_results[:top_n]:
         page = {
-            "title": snippet[:60],  # optional: take first 60 chars as a "title"
+            "title": snippet[:60],  # take first 60 chars as a "title"
             "snippet": snippet,
             "credibility": 0.8,
             "source": "Trusted Medical Source"
         }
         results.append(page)
-        #print(f"Title: {page['title']}\nSnippet: {page['snippet'][:500]}\n")
     
     return results
 
-# Fetch and clean pages content
 def fetch_clean_content(url):
     try:
         response = requests.get(url, timeout = 10)
@@ -89,13 +83,13 @@ def fetch_clean_content(url):
         return ""
 
 
-# Example usage of PyPDFLoader to load and process a PDF document
 
 #STEP 1: Load a PDF document
 pdf_path = r"C:/Users/start/OneDrive/Desktop/Algorithm_Task.pdf"
 loader = PyPDFLoader(pdf_path, mode = "single", pages_delimiter="\n-------THIS IS A CUSTOM END OF PAGE-------\n",) #PDF can be extracted in single or multiple pages
 docs = loader.load()
-# print(f"Loaded {len(docs)} pages from {pdf_path}")
+
+
 
 # STEP 2: Split the document into smaller chunks
 def chunck_text(text, chunk_size=1000, chunk_overlap=200):
@@ -106,8 +100,6 @@ def chunck_text(text, chunk_size=1000, chunk_overlap=200):
     splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     return [c for c in splitter.split_text(text) if c]
 
-# print(f"Split into {len(split_docs)} chunks")
-# print(f"First chunk:\n{split_docs[0].page_content[:500].strip()}\n")
 
 
 # STEP 3: Convert the chunks to a format suitable for the retriever (indexing , embeddings)
@@ -118,8 +110,6 @@ def embedd_chuncks(chunks):
         if chunk:
             vectors.append(embedding_model.embed_query(chunk))
     return vectors
-# print(f"Generated embeddings for {len(embiddings)} chunks")
-# print(f"First embedding vector: {embiddings[0][:5]}...")  # Print first 5 dimensions of the first embedding
 
 
 # STEP 4: Create a retriever from the embeddings (Store using FAISS)
@@ -130,7 +120,7 @@ def semantic_search(query, chuncks, embeddings, credability_score, top_k = 5):
     query_embed = embedding_model.embed_query(query)
 
     # L2 distance (Euclidean distance) as the similarity metric.
-    index = faiss.IndexFlatL2(len(query_embed)) # Dimension of the embeddings
+    index = faiss.IndexFlatL2(len(query_embed)) 
     index.add(np.array(embeddings).astype('float32'))
     # This index will store all the document chunks as vectors 
     # so that we can quickly compute distances to the query vector.
@@ -160,7 +150,7 @@ def medical_query_rag(query, top_k = 50, top_n_chuncks = 50, state = state):
     for page in search_results:
         content = fetch_clean_content(page.get("url", ""))  # Fetch content only if URL exists
         if not content:
-            content = page["snippet"]  # fallback to snippet
+            content = page["snippet"]  
         chunks = chunck_text(content)
         all_chunks.extend(chunks)
         credibility_scores.extend([page['credibility']] * len(chunks))

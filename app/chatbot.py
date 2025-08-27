@@ -7,7 +7,7 @@ st.set_page_config(page_title="Healthcare Chatbot", layout="wide")
 st.title("Healthcare Chatbot 🤖🩺")
 st.write("Ask any healthcare question. Responses are generated using trusted sources.")
 
-# Initialize chat state
+
 if "state" not in st.session_state:
     st.session_state.state = MessagesState(messages=[])
 if "messages" not in st.session_state:
