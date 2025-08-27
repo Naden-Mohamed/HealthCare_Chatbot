@@ -11,6 +11,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from memory import call_model
 from langgraph.graph import MessagesState
+from langgraph.checkpoint.memory import MemorySaver
+
 
 
 os.environ["USER_AGENT"] = "my-healthcare-chatbot/1.0"
@@ -26,6 +28,7 @@ embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-Mi
 
 # Initialize memory state
 state = MessagesState(messages=[])
+memory_saver = MemorySaver()  # optional if you want to persist
 
 
 ## Wikipedia API Wrapper
@@ -96,26 +99,34 @@ docs = loader.load()
 
 # STEP 2: Split the document into smaller chunks
 def chunck_text(text, chunk_size=1000, chunk_overlap=200):
-    words = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    return words.split_text(text)
+    if not text:
+        return []
+    if isinstance(text, list):
+        text = " ".join(text)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    return [c for c in splitter.split_text(text) if c]
+
 # print(f"Split into {len(split_docs)} chunks")
 # print(f"First chunk:\n{split_docs[0].page_content[:500].strip()}\n")
 
 
 # STEP 3: Convert the chunks to a format suitable for the retriever (indexing , embeddings)
-def embedd_chuncks(chuncks):
-    embedding = []
-    for chunk in chuncks:
-        vector = embedding_model.embed_query(chunk)
-        embedding.append(vector)
 
-    return embedding
+def embedd_chuncks(chunks):
+    vectors = []
+    for chunk in chunks:
+        if chunk:
+            vectors.append(embedding_model.embed_query(chunk))
+    return vectors
 # print(f"Generated embeddings for {len(embiddings)} chunks")
 # print(f"First embedding vector: {embiddings[0][:5]}...")  # Print first 5 dimensions of the first embedding
 
 
 # STEP 4: Create a retriever from the embeddings (Store using FAISS)
 def semantic_search(query, chuncks, embeddings, credability_score, top_k = 5):
+    if not chuncks or not embeddings:
+        return []
+    
     query_embed = embedding_model.embed_query(query)
 
     # L2 distance (Euclidean distance) as the similarity metric.
@@ -140,25 +151,7 @@ def semantic_search(query, chuncks, embeddings, credability_score, top_k = 5):
     return [chunck for chunck, final_score in results[:top_k]]
 
 
-# def LLM_Answer_Generation(query, top_chunks):
-#     context = "\n\n".join(top_chunks)
-#     prompt = f"Answer the following question using only the provided context:\n\n{context}\n\nQuestion: {query}\nAnswer:"
-
-#     # ChatGroq expects a list of messages
-#     messages = [
-#         SystemMessage(content="You are a helpful medical assistant."),
-#         HumanMessage(content=prompt)
-#     ]
-
-#     response = llm(messages)  # Direct call
-#     return response.content  # Extract text
-
-def medical_query_rag(query, top_k = 5, top_n_chuncks = 5):
-       # Check cache
-    # cached_answer = cache_query(query)
-    # if cached_answer:
-    #     print("Using cached answer")
-    #     return cached_answer
+def medical_query_rag(query, top_k = 50, top_n_chuncks = 50, state = state):
 
     search_results = fetch_trusted_medical_webpages(query, top_k)
 
@@ -176,11 +169,7 @@ def medical_query_rag(query, top_k = 5, top_n_chuncks = 5):
 
     top_chunks = semantic_search(query, all_chunks, embeddings, credibility_scores, top_k= top_n_chuncks)
 
-        # Call your model with top chunks
-    answer_obj = call_model(state, query, top_chunks=top_chunks, llm = llm)
-
-    # Extract the assistant's latest response
-    answer = answer_obj["messages"][-1].content
+    answer = call_model(state, query, top_chunks=top_chunks, llm=llm)
 
     # 5. Cache answer
     #cache_query(query, answer)
@@ -208,8 +197,10 @@ async def retrieve_documents():
 
 if __name__ == "__main__":
     # asyncio.run(retrieve_documents())
-    query = "symptoms of hypothyroidism"
+    query = "symptoms of diabetes"
     answer = medical_query_rag(query, top_k=5, top_n_chuncks=5)
     print("Final Answer:\n", answer)
+
+    
     
 

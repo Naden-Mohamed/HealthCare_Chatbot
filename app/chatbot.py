@@ -1,23 +1,23 @@
 import streamlit as st
-from retriever import medical_query_rag  # remove .py
+from retriever import medical_query_rag
+from langgraph.graph import MessagesState
+import time
 
 st.set_page_config(page_title="Healthcare Chatbot", layout="wide")
 st.title("Healthcare Chatbot 🤖🩺")
+st.write("Ask any healthcare question. Responses are generated using trusted sources.")
 
-st.write("This chatbot provides information on healthcare topics using trusted sources like Wikipedia and medical websites.")
-
-# Initialize chat history
+# Initialize chat state
+if "state" not in st.session_state:
+    st.session_state.state = MessagesState(messages=[])
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # Display previous messages
 for message in st.session_state.messages:
-    role = message["role"]
-    content = message["content"]
-    with st.chat_message(role):
-        st.markdown(content)
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# User input
 user_query = st.chat_input("Ask me anything about healthcare!")
 if user_query:
 
@@ -25,11 +25,25 @@ if user_query:
     with st.chat_message("user"):
         st.markdown(user_query)
 
-    # Fetch AI response
-    with st.spinner("Fetching answer..."):
-        response = medical_query_rag(user_query, top_k=500, top_n_chuncks=500)
 
-    # Append bot response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
     with st.chat_message("assistant"):
-        st.markdown(response)
+        response_placeholder = st.empty()
+        response_text = ""
+
+
+        answer_obj = medical_query_rag(user_query, state=st.session_state.state)
+
+
+        # Correctly extract latest AI response from state
+        if isinstance(answer_obj, dict) and "messages" in answer_obj:
+            last_message = answer_obj["messages"]
+            answer_text = getattr(last_message, "content", str(last_message))
+        else:
+            answer_text = str(answer_obj)
+
+        for token in answer_text.split():
+            response_text += token + " "
+            response_placeholder.markdown(response_text)
+            time.sleep(0.05)
+
+    st.session_state.messages.append({"role": "assistant", "content": answer_text})

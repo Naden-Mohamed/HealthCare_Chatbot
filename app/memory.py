@@ -2,60 +2,51 @@ from langchain_core.messages import HumanMessage, RemoveMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 
-
 workflow = StateGraph(state_schema=MessagesState)
 
 
-# Define the function that calls the model
+def normalize_messages(messages):
+    normalized = []
+    for m in messages:
+        if isinstance(m, dict) and "content" in m:
+            normalized.append(HumanMessage(content=m["content"]))
+        elif hasattr(m, "content"):
+            normalized.append(HumanMessage(content=m.content))
+    return normalized
+
+
 def call_model(state: MessagesState, query: str, top_chunks: list, llm=None):
-    """
-    state: MessagesState for chat memory
-    query: user query
-    top_chunks: top retrieved RAG chunks
-    llm: LLM instance (ChatGroq)
-    """
-
     if llm is None:
-        raise ValueError("You must pass an LLM instance to call_model")
+        raise ValueError("LLM instance must be provided")
 
-    system_prompt = (
-        "You are a helpful medical assistant. "
-        "Answer all questions to the best of your ability using the context provided."
-    )
-    system_message = SystemMessage(content=system_prompt)
-
-    # Include retrieved chunks as context
-    context_message = HumanMessage(content="\n\n".join(top_chunks))
-
-    # Include latest user query
+    system_message = SystemMessage(content="You are a helpful medical assistant.")
     user_message = HumanMessage(content=query)
+    context_message = HumanMessage(content="\n\n".join(top_chunks))
+    message_history = normalize_messages(state["messages"])
 
-    # If chat history exists, summarize older messages
-    message_history = state["messages"][:-1] if state["messages"] else []
+    # Summarize old messages if too long
     if len(message_history) >= 4:
-        # Summarize older messages
-        summary_prompt = "Summarize the previous messages into a concise summary."
-        summary_message = llm(message_history + [HumanMessage(content=summary_prompt)])
-        # Delete older messages (optional)
-        delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
-        message_updates = [summary_message, user_message, context_message] + delete_messages
+        summary_prompt = "Summarize the previous messages concisely."
+        summary_output = llm(message_history + [HumanMessage(content=summary_prompt)])
+        summary_message = HumanMessage(content=getattr(summary_output, "content", str(summary_output)))
+        message_updates = [summary_message, context_message, user_message]
     else:
         message_updates = [system_message, context_message, user_message]
 
-    # Call LLM with messages
+
     response = llm(message_updates)
+    response_message = HumanMessage(content=getattr(response, "content", str(response)))
 
-    # Store messages in state
-    state["messages"].extend(message_updates)
-    state["messages"].append(HumanMessage(content=response.content if hasattr(response, "content") else response))
-
-    return {"messages": state["messages"]}
+    # Update state with new messages
+    state["messages"].extend(message_updates + [response_message])
+    return response_message.content
 
 
-# Define the node and edge
+
+
 workflow.add_node("model", call_model)
 workflow.add_edge(START, "model")
 
-# Add simple in-memory checkpointer
 memory = MemorySaver()
 app = workflow.compile(checkpointer=memory)
+
