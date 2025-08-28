@@ -1,6 +1,7 @@
 import streamlit as st
 from retriever import medical_query_rag
 from langgraph.graph import MessagesState
+from doc_loader import CustomDocumentLoader
 import time
 
 st.set_page_config(page_title="Healthcare Chatbot", layout="wide")
@@ -9,29 +10,48 @@ st.write("Ask any healthcare question. Responses are generated using trusted sou
 
 
 
-
-def file_upload():
-    uploaded_file = st.file_uploader("Upload a document", type=["pdf", "txt", "docx", "pptx"])
-    if uploaded_file:
-        st.write("Filename: ", uploaded_file.name)
-
-    return uploaded_file
-
-
 if "state" not in st.session_state:
     st.session_state.state = MessagesState(messages=[])
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "file_content" not in st.session_state:
+    st.session_state.file_content = None
+if "file_path" not in st.session_state:
+    st.session_state.file_path = None
+if "uploaded_file" not in st.session_state:
+    st.session_state.uploaded_file = None
+
+
+
+def ask_your_file(query):
+    if not st.session_state.file_content:
+        return "No file content available. Please upload a document first."
+
+    answer = CustomDocumentLoader.preprocess_file_content(query, st.session_state.file_content, state=st.session_state.state)
+    return answer
+
+
+# Sidebar for file upload to answer questions based on file content
+with st.sidebar:
+    st.session_state.uploaded_file = st.sidebar.file_uploader(
+        "Upload a document", type=["pdf", "txt", "docx", "pptx"]
+    )
+    if st.session_state.uploaded_file:
+        st.session_state.file_path = CustomDocumentLoader.save_uploaded_file(st.session_state.uploaded_file)
+        loader = CustomDocumentLoader(st.session_state.file_path)
+        st.session_state.file_content = [doc.page_content for doc in loader.lazy_load()]
+        st.success(f"{st.session_state.uploaded_file.name} loaded successfully!")
+
+
+    if st.sidebar.button("Clear Conversation"):
+        st.session_state.messages = []
+        st.session_state.file_content = None
 
 # Display previous messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Sidebar for file upload to answer questions based on file content
-with st.sidebar:
-    st.button("📂 Upload your file", on_click=lambda: file_upload())
-    st.button("Clear Conversation", on_click=lambda: st.session_state.clear())
 
 
 user_query = st.chat_input("Ask me anything about healthcare!") 
@@ -47,8 +67,10 @@ if user_query:
         response_placeholder = st.empty()
         response_text = ""
 
-
-        answer_obj = medical_query_rag(user_query, state=st.session_state.state)
+        if st.session_state.uploaded_file:
+            answer_obj = ask_your_file(user_query)
+        else:
+            answer_obj = medical_query_rag(user_query, state=st.session_state.state)
 
 
         # Correctly extract latest AI response from state

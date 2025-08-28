@@ -9,7 +9,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
-from memory import call_model
+from memory import call_model, call_model_for_file
 from langgraph.graph import MessagesState
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -141,6 +141,32 @@ def semantic_search(query, chuncks, embeddings, credability_score, top_k = 5):
     return [chunck for chunck, final_score in results[:top_k]]
 
 
+def semantic_search_files(query, chuncks, embeddings, credability_score, top_k = 5):
+    if not chuncks or not embeddings:
+        return []
+    
+    query_embed = embedding_model.embed_query(query)
+
+    # L2 distance (Euclidean distance) as the similarity metric.
+    index = faiss.IndexFlatL2(len(query_embed)) 
+    index.add(np.array(embeddings).astype('float32'))
+    # This index will store all the document chunks as vectors 
+    # so that we can quickly compute distances to the query vector.
+    # FAISS requires a NumPy array of type float32
+
+    D, I = index.search(np.array([query_embed]).astype('float32'), len(embeddings))
+    # D - distances of each chunk from the query (shape [1, num_chunks]), I - indices of nearest neighbors
+
+    # Final score = similarity * credibility
+    results = []
+    for pos, idx in enumerate(I[0]):
+        similarity = 1 / (1 + D[0][pos])  # Convert distance to similarity
+        # We want a similarity score between 0 and 1 (higher = better),
+        # so 1 / (1 + distance) is a simple conversion.
+        final_score = similarity * credability_score
+        results.append((chuncks[idx] , final_score))
+    results.sort(key=lambda x: x[1], reverse=True)
+    return [chunck for chunck, final_score in results[:top_k]]
 def medical_query_rag(query, top_k = 50, top_n_chuncks = 50, state = state):
 
     search_results = fetch_trusted_medical_webpages(query, top_k)

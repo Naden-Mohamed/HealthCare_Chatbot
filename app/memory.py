@@ -41,6 +41,21 @@ def call_model(state: MessagesState, query: str, top_chunks: list, llm=None):
     return response_message.content
 
 
+def call_model_for_file(query: str, top_chunks: list, llm=None):
+    if llm is None:
+        raise ValueError("LLM instance must be provided")
+
+    system_message = SystemMessage(content="You are a helpful medical assistant. Provide accurate and concise information based on the provided file content.")
+    user_message = HumanMessage(content=query)
+    context_message = HumanMessage(content="\n\n".join(top_chunks))
+    message_updates = [system_message, context_message, user_message]
+
+    response = llm(message_updates)
+    response_message = HumanMessage(content=getattr(response, "content", str(response)))
+
+    #state["messages"].extend(message_updates + [response_message])
+    return response_message.content
+
 # Adds the call_model function as a node in the workflow.
 # Connects it to the START node so it runs when the workflow starts.
 workflow.add_node("model", call_model)
