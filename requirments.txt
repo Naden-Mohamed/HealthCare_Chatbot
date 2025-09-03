@@ -1,0 +1,9 @@
+HuggingFaceEmbeddings
+langgraph.graph 
+wikipedia
+faiss
+RecursiveCharacterTextSplitter
+streamlit
+PyPDFLoader
+UnstructuredWordDocumentLoader
+UnstructuredPowerPointLoader
