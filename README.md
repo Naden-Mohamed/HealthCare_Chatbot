@@ -68,7 +68,6 @@ source .venv/bin/activate   # Linux/Mac
 
 ```
 pip install -r requirements.txt
-
 ```
 
 * Set up environment variables in .env:
@@ -84,4 +83,5 @@ Run the chatbot:
 ``` 
 python app/chatbot.py
 ```
+
 
