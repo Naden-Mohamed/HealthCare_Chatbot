@@ -51,34 +51,41 @@ Streamlit session state manages multiple conversation contexts:
 
 * Clone the repository:
 
+```
 git clone https://github.com/your-username/healthcare-chatbot-rag.git
 cd healthcare-chatbot-rag
-
+```
 
 * Create and activate a virtual environment:
 
-``` python -m venv .venv ```
-``` source .venv/bin/activate   # Linux/Mac ```
-``` .venv\Scripts\activate      # Windows ```
+```
+python -m venv .venv
+```
+``` 
+source .venv/bin/activate   # Linux/Mac
+```
+```
+.venv\Scripts\activate      # Windows
+```
 
 
 * Install dependencies:
 
-``` 
+```
 pip install -r requirements.txt
 
 ```
 
-
 * Set up environment variables in .env:
 
-``` GROQ_API_KEY=your_groq_api_key ```
+```
+GROQ_API_KEY=your_groq_api_key
+```
 
 * Usage
 
 Run the chatbot:
 
-``` python app/chatbot.py ```
-
-
-
+``` 
+python app/chatbot.py
+```
