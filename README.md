@@ -17,7 +17,7 @@ The system supports both general medical queries through web search and document
 ## Main RAG Pipeline
 
 | Step | Function | Purpose |
-| :---         |     :---:      |          ---: |
+| :---         |     :---:      | :---    |
 | 1   | fetch_trusted_medical_webpages()     | Retrieve web content from trusted sources (DuckDuckGo Search Engine)    |
 | 2   | fetch_clean_content()       | Extract clean text from web pages|
 | 3   | chunck_text()     | Split content into manageable chunk |
@@ -46,3 +46,4 @@ Streamlit session state manages multiple conversation contexts:
 - st.session_state.messages: Chat message history for UI display
 - st.session_state.file_content: Processed document content
 - st.session_state.uploaded_file: Current uploaded file reference
+
