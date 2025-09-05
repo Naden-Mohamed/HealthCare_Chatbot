@@ -59,15 +59,10 @@ cd healthcare-chatbot-rag
 * Create and activate a virtual environment:
 
 ```
-python -m venv .venv
-```
-``` 
+python -m venv .venv 
 source .venv/bin/activate   # Linux/Mac
-```
-```
 .venv\Scripts\activate      # Windows
 ```
-
 
 * Install dependencies:
 
@@ -89,3 +84,4 @@ Run the chatbot:
 ``` 
 python app/chatbot.py
 ```
+
