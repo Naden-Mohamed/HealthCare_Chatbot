@@ -51,8 +51,8 @@ Streamlit session state manages multiple conversation contexts:
 
 * Clone the repository:
 
-```git clone https://github.com/your-username/healthcare-chatbot-rag.git
-cd healthcare-chatbot-rag ```
+git clone https://github.com/your-username/healthcare-chatbot-rag.git
+cd healthcare-chatbot-rag
 
 
 * Create and activate a virtual environment:
@@ -76,4 +76,5 @@ cd healthcare-chatbot-rag ```
 Run the chatbot:
 
 ``` python app/chatbot.py ```
+
 
