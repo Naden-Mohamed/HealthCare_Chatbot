@@ -64,7 +64,10 @@ cd healthcare-chatbot-rag
 
 * Install dependencies:
 
-``` pip install -r requirements.txt ```
+``` 
+pip install -r requirements.txt
+
+```
 
 
 * Set up environment variables in .env:
@@ -76,5 +79,6 @@ cd healthcare-chatbot-rag
 Run the chatbot:
 
 ``` python app/chatbot.py ```
+
 
 
