@@ -1,9 +1,19 @@
-HuggingFaceEmbeddings
-langgraph.graph 
-wikipedia
-faiss
-RecursiveCharacterTextSplitter
-streamlit
-PyPDFLoader
-UnstructuredWordDocumentLoader
-UnstructuredPowerPointLoader
+# Core LLM & LangChain ecosystem
+langchain>=0.2.10
+langchain-openai>=0.1.7
+langgraph>=0.0.40
+
+# Embeddings & Vector DB
+sentence-transformers>=2.7.0
+faiss-cpu>=1.7.4
+
+# Retrieval & Document Loaders
+wikipedia-api>=0.6.0
+unstructured>=0.15.0
+pypdf>=4.2.0
+
+# Web App (UI)
+streamlit>=1.36.0
+
+# Utilities
+tiktoken>=0.7.0
