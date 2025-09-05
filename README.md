@@ -1,10 +1,10 @@
 # Healthcare Chatbot system
 ***RAG (Retrieval-Augmented Generation) based application designed for medical question answering and document analysis. 
-The system combines trusted medical source retrieval with large language model capabilities to provide accurate healthcare information responses.***
+The system combines trusted medical source retrieval with large language model capabilities to provide accurate healthcare information responses.
+The healthcare chatbot follows a layered architecture with clear separation between user interface, processing logic, and external service integrations. 
+The system supports both general medical queries through web search and document-specific question answering through uploaded files***
 <img width="1702" height="502" alt="image" src="https://github.com/user-attachments/assets/64b0cd04-15be-4e46-a541-5de53d7dae26" />
 
-***The healthcare chatbot follows a layered architecture with clear separation between user interface, processing logic, and external service integrations. 
-The system supports both general medical queries through web search and document-specific question answering through uploaded files***
 
 ## Medical Information Retrieval
 ### The system provides healthcare information through multiple data sources:
@@ -83,5 +83,6 @@ Run the chatbot:
 ``` 
 python app/chatbot.py
 ```
+
 
 
