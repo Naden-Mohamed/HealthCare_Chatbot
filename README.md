@@ -1,5 +1,5 @@
 # Healthcare Chatbot system
-***a RAG (Retrieval-Augmented Generation) based application designed for medical question answering and document analysis. 
+***RAG (Retrieval-Augmented Generation) based application designed for medical question answering and document analysis. 
 The system combines trusted medical source retrieval with large language model capabilities to provide accurate healthcare information responses.***
 <img width="1702" height="502" alt="image" src="https://github.com/user-attachments/assets/64b0cd04-15be-4e46-a541-5de53d7dae26" />
 
@@ -47,3 +47,32 @@ Streamlit session state manages multiple conversation contexts:
 - st.session_state.file_content: Processed document content
 - st.session_state.uploaded_file: Current uploaded file reference
 
+### Installation
+
+Clone the repository:
+
+```git clone https://github.com/your-username/healthcare-chatbot-rag.git
+cd healthcare-chatbot-rag```
+
+
+Create and activate a virtual environment:
+
+```python -m venv .venv```
+```source .venv/bin/activate   # Linux/Mac```
+```.venv\Scripts\activate      # Windows```
+
+
+Install dependencies:
+
+pip install -r requirements.txt
+
+
+Set up environment variables in .env:
+
+GROQ_API_KEY=your_groq_api_key
+
+🚀 Usage
+
+Run the chatbot:
+
+python app/chatbot.py
